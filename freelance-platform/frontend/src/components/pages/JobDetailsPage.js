@@ -413,25 +413,53 @@ const JobDetailsPage = () => {
   };
   
   if (loading) {
-    return <div className="text-center py-4">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center">
+          <div className="relative w-20 h-20">
+            <div className="absolute top-0 left-0 w-full h-full border-4 border-blue-200 rounded-full animate-pulse"></div>
+            <div className="absolute top-0 left-0 w-full h-full border-t-4 border-blue-600 rounded-full animate-spin"></div>
+          </div>
+          <p className="mt-4 text-gray-600 font-medium">Loading job details...</p>
+        </div>
+      </div>
+    );
   }
   
   if (error) {
     return (
-      <div className="text-center py-4 text-red-600">
-        <p>Error: {error}</p>
+      <div className="bg-red-50 border border-red-200 rounded-lg p-8 max-w-2xl mx-auto my-10 text-center">
+        <svg className="w-16 h-16 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <h2 className="text-2xl font-bold text-red-700 mb-2">Error Loading Job</h2>
+        <p className="text-red-600 mb-6">{error}</p>
         <button 
           onClick={() => window.location.reload()}
-          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md"
         >
-          Reload Page
+          Try Again
         </button>
       </div>
     );
   }
   
   if (!job) {
-    return <div className="text-center py-4">Job not found</div>;
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8 max-w-2xl mx-auto my-10 text-center">
+        <svg className="w-16 h-16 text-yellow-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <h2 className="text-2xl font-bold text-yellow-700 mb-2">Job Not Found</h2>
+        <p className="text-yellow-600 mb-6">The job you're looking for could not be found.</p>
+        <button 
+          onClick={() => navigate('/jobs')}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md"
+        >
+          Back to Job Listings
+        </button>
+      </div>
+    );
   }
   
   // Check if user has already applied
@@ -480,10 +508,10 @@ const JobDetailsPage = () => {
   };
 
   return (
-    <div>
+    <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Job access notification for freelancers */}
       {user && user.role === 'freelancer' && !isSelectedFreelancer && job.selectedFreelancer && (
-        <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4">
+        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6 rounded-md shadow-sm">
           <div className="flex">
             <div className="flex-shrink-0">
               <svg className="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
@@ -507,7 +535,7 @@ const JobDetailsPage = () => {
       
       {/* Success notification for selected freelancer */}
       {user && user.role === 'freelancer' && isSelectedFreelancer && (
-        <div className="bg-green-100 border-l-4 border-green-500 p-4 mb-4">
+        <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-md shadow-sm">
           <div className="flex">
             <div className="flex-shrink-0">
               <svg className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
@@ -517,73 +545,103 @@ const JobDetailsPage = () => {
             <div className="ml-3">
               <p className="text-sm text-green-700">
                 <span className="font-bold">Congratulations!</span> You have been selected for this job. You can now submit your work below.
-                <button 
-                  onClick={debugJobStatus}
-                  className="ml-2 text-xs text-green-700 underline hover:text-green-600"
-                >
-                  Check Job Status
-                </button>
               </p>
             </div>
           </div>
         </div>
       )}
 
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">{job.title}</h1>
-        <div className="text-xl font-bold text-green-600">${job.budget.toFixed(2)}</div>
+      {/* Job Header with breadcrumbs */}
+      <div className="mb-8">
+        <div className="flex flex-wrap items-center text-sm text-gray-500 mb-2">
+          <button onClick={() => navigate('/jobs')} className="hover:text-blue-600">
+            Jobs
+          </button>
+          <svg className="mx-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+          <span className="text-gray-700">Job Details</span>
+        </div>
+        
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">{job.title}</h1>
+            <div className="flex flex-wrap items-center gap-3 mt-2">
+              <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${
+                job.status === 'open' ? 'bg-blue-100 text-blue-800' :
+                job.status === 'assigned' ? 'bg-yellow-100 text-yellow-800' :
+                job.status === 'in_progress' ? 'bg-purple-100 text-purple-800' :
+                job.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+              }`}>
+                {job.status.replace('_', ' ')}
+              </span>
+              <span className="text-gray-600 flex items-center">
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                </svg>
+                Posted by {job.jobProvider.name}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center">
+            <div className="bg-white px-6 py-4 rounded-lg shadow-sm border border-gray-100">
+              <div className="text-sm text-gray-500 mb-1">Budget</div>
+              <div className="text-2xl font-bold text-green-600">${job.budget.toFixed(2)}</div>
+            </div>
+          </div>
+        </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2">
-          <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-            <h2 className="text-xl font-semibold mb-4">Job Description</h2>
-            <p className="mb-4 whitespace-pre-line">{job.description}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 mb-8">
+            <h2 className="text-xl font-bold mb-6 text-gray-900">Job Description</h2>
+            <div className="prose max-w-none">
+              <p className="mb-6 text-gray-700 whitespace-pre-line">{job.description}</p>
+            </div>
             
-            <h3 className="text-lg font-semibold mb-2">Required Skills:</h3>
+            <h3 className="text-lg font-semibold mb-3 text-gray-900">Required Skills</h3>
             <div className="flex flex-wrap gap-2 mb-4">
               {job.requiredSkills.map(skill => (
                 <span 
                   key={skill} 
-                  className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                  className="inline-block px-3 py-1.5 bg-blue-50 text-blue-700 text-sm rounded-full border border-blue-100"
                 >
                   {skill}
                 </span>
               ))}
             </div>
-            
-            <div className="mt-4 text-sm text-gray-500">
-              <p>Job Status: <span className="capitalize font-medium">{job.status}</span></p>
-              <p>Posted by: {job.jobProvider.name}</p>
-              {job.selectedFreelancer && (
-                <p>Assigned to: {job.selectedFreelancer.name}</p>
-              )}
-            </div>
           </div>
           
           {/* Freelancer application form */}
           {user && user.role === 'freelancer' && job.status === 'open' && !hasApplied && (
-            <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-              <h2 className="text-xl font-semibold mb-4">Apply for this Job</h2>
-              <form onSubmit={handleApply}>
-                <div className="mb-4">
-                  <label className="block text-gray-700 mb-2" htmlFor="price">
+            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 mb-8">
+              <h2 className="text-xl font-bold mb-6 text-gray-900">Apply for this Job</h2>
+              <form onSubmit={handleApply} className="space-y-6">
+                <div>
+                  <label className="block text-gray-700 mb-2 font-medium" htmlFor="price">
                     Your Price ($)
                   </label>
-                  <input
-                    type="number"
-                    id="price"
-                    name="price"
-                    value={applicationForm.price}
-                    onChange={handleApplicationChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
-                    required
-                    min="1"
-                  />
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-500">$</span>
+                    </div>
+                    <input
+                      type="number"
+                      id="price"
+                      name="price"
+                      value={applicationForm.price}
+                      onChange={handleApplicationChange}
+                      className="pl-8 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                      min="1"
+                    />
+                  </div>
+                  <p className="mt-1 text-sm text-gray-500">Set a competitive price to increase your chances</p>
                 </div>
                 
-                <div className="mb-4">
-                  <label className="block text-gray-700 mb-2" htmlFor="proposal">
+                <div>
+                  <label className="block text-gray-700 mb-2 font-medium" htmlFor="proposal">
                     Your Proposal
                   </label>
                   <textarea
@@ -591,16 +649,17 @@ const JobDetailsPage = () => {
                     name="proposal"
                     value={applicationForm.proposal}
                     onChange={handleApplicationChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
-                    rows="5"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    rows="6"
                     required
-                    placeholder="Explain why you're a good fit for this job..."
+                    placeholder="Explain why you're a good fit for this job, your relevant experience, and how you plan to approach the work..."
                   ></textarea>
+                  <p className="mt-1 text-sm text-gray-500">A detailed proposal increases your chances of being selected</p>
                 </div>
                 
                 <button
                   type="submit"
-                  className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 focus:outline-none"
+                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   Submit Application
                 </button>
@@ -609,30 +668,58 @@ const JobDetailsPage = () => {
           )}
           
           {user && user.role === 'freelancer' && hasApplied && job.status === 'open' && (
-            <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-              <h2 className="text-xl font-semibold mb-4">Your Application</h2>
-              <p className="text-gray-600 italic mb-2">
-                You have already applied for this job. Please wait for the job provider to review your application.
-              </p>
+            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 mb-8">
+              <div className="flex items-start">
+                <div className="bg-green-100 rounded-full p-2 mr-4">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                </div>
+                <div>
+                <h2 className="text-xl font-bold mb-2 text-gray-900">Application Submitted</h2>
+                  <p className="text-gray-700">
+                    Your application has been submitted successfully. The job provider will review it and may select you for this project.
+                  </p>
+                  <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                    <p className="text-sm text-blue-700">
+                      <span className="font-medium">Tip:</span> Continue browsing other job opportunities while you wait for a response.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           
-          {/* Submission form for assigned freelancer - IMPROVED LOGIC */}
+          {/* Submission form for assigned freelancer */}
           {user && 
            user.role === 'freelancer' && 
            isSelectedFreelancer && 
            (job.status === 'assigned' || job.status === 'in_progress') && (
-            <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-              <h2 className="text-xl font-semibold mb-4">Submit Work</h2>
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded mb-4">
-                <p className="text-blue-700">
-                  <strong>Note:</strong> You're the selected freelancer for this job. 
-                  Use this form to submit your work for review by the verifiers.
+            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 mb-8">
+              <div className="flex items-center mb-6">
+                <div className="bg-blue-100 p-2 rounded-full mr-3">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                  </svg>
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">Submit Your Work</h2>
+              </div>
+              
+              <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg mb-6">
+                <p className="text-blue-700 flex items-start">
+                  <svg className="w-5 h-5 mr-2 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <span>
+                    As the selected freelancer, use this form to submit your completed work for verification.
+                    All submissions will be reviewed by the assigned verifiers.
+                  </span>
                 </p>
               </div>
-              <form onSubmit={handleSubmitWork}>
-                <div className="mb-4">
-                  <label className="block text-gray-700 mb-2" htmlFor="text">
+              
+              <form onSubmit={handleSubmitWork} className="space-y-6">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2" htmlFor="text">
                     Submission Details
                   </label>
                   <textarea
@@ -640,46 +727,58 @@ const JobDetailsPage = () => {
                     name="text"
                     value={submissionForm.text}
                     onChange={handleSubmissionChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
-                    rows="5"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    rows="6"
                     required
-                    placeholder="Describe your work submission..."
+                    placeholder="Describe your completed work, include any notes for the client and verifiers..."
                   ></textarea>
+                  <p className="mt-1 text-sm text-gray-500">Be detailed about what you've accomplished and any challenges you faced</p>
                 </div>
                 
-                <div className="mb-4">
-                  <label className="block text-gray-700 mb-2" htmlFor="images">
-                    Images (Optional)
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2" htmlFor="images">
+                    Upload Images <span className="text-gray-500 font-normal">(Optional)</span>
                   </label>
-                  <input
-                    type="file"
-                    id="images"
-                    name="images"
-                    onChange={handleImageChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
-                    multiple
-                    accept="image/*"
-                  />
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                    <input
+                      type="file"
+                      id="images"
+                      name="images"
+                      onChange={handleImageChange}
+                      className="hidden"
+                      multiple
+                      accept="image/*"
+                    />
+                    <label htmlFor="images" className="cursor-pointer flex flex-col items-center">
+                      <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                      </svg>
+                      <span className="text-blue-600 font-medium">Click to upload images</span>
+                      <span className="text-gray-500 text-sm mt-1">Drag and drop supported</span>
+                    </label>
+                  </div>
                   
                   {/* Image previews */}
                   {previewImages.length > 0 && (
-                    <div className="mt-3">
-                      <p className="text-sm font-medium mb-2">Selected Images Preview:</p>
-                      <div className="flex flex-wrap gap-2">
+                    <div className="mt-4">
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">Selected Images ({previewImages.length})</h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                         {previewImages.map((img, index) => (
-                          <div key={index} className="relative group">
+                          <div key={index} className="relative group rounded-lg overflow-hidden border border-gray-200">
                             <img 
                               src={img.dataUrl} 
                               alt={`Preview ${index + 1}`}
-                              className="h-24 w-24 object-cover rounded border border-gray-200"
+                              className="h-24 w-full object-cover"
                             />
-                            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 truncate">
+                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity"></div>
+                            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-1 truncate">
                               {img.name}
                             </div>
                             <button
                               type="button"
                               onClick={() => removeImage(index)}
-                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              aria-label="Remove image"
                             >
                               ×
                             </button>
@@ -692,9 +791,12 @@ const JobDetailsPage = () => {
                 
                 <button
                   type="submit"
-                  className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 focus:outline-none"
+                  className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors shadow-sm flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
                 >
-                  Submit Work
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  Submit Work for Verification
                 </button>
               </form>
             </div>
@@ -702,266 +804,362 @@ const JobDetailsPage = () => {
           
           {/* Submission list with images */}
           {submissions.length > 0 && (
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h2 className="text-xl font-semibold mb-4">Work Submissions</h2>
+            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+              <h2 className="text-xl font-bold mb-6 text-gray-900 flex items-center">
+                <svg className="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+                Work Submissions
+              </h2>
               
-              {submissions.map(submission => (
-                <div key={submission._id} className="mb-4 border-b pb-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <p className="font-medium">
-                        Submitted by {submission.freelancer.name}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        on {new Date(submission.createdAt).toLocaleString()}
-                      </p>
+              <div className="space-y-8">
+                {submissions.map(submission => (
+                  <div key={submission._id} className="border-b border-gray-100 pb-8 mb-8 last:border-b-0 last:pb-0 last:mb-0">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold mr-3">
+                          {submission.freelancer.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-gray-900">
+                            {submission.freelancer.name}
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            {new Date(submission.createdAt).toLocaleDateString('en-US', {
+                              year: 'numeric', 
+                              month: 'short', 
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium uppercase ${
+                        submission.status === 'approved'
+                          ? 'bg-green-100 text-green-800'
+                          : submission.status === 'rejected'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {submission.status}
+                      </span>
                     </div>
-                    <span className={`px-2 py-1 text-sm rounded ${
-                      submission.status === 'approved'
-                        ? 'bg-green-100 text-green-800'
-                        : submission.status === 'rejected'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {submission.status.toUpperCase()}
-                    </span>
-                  </div>
-                  
-                  <p className="mb-3">{submission.text}</p>
-                  
-                  {/* Display images - now using localStorage */}
-                  {submission.images && submission.images.length > 0 && (
-                    <div className="mb-4">
-                      <p className="text-sm font-medium mb-2">Images:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {submission.images.map((imageId, index) => {
-                          const image = getImageFromStorage(imageId);
-                          
-                          if (image && image.dataUrl) {
-                            return (
-                              <div 
-                                key={index} 
-                                className="relative cursor-pointer group" 
-                                onClick={() => openImageViewer(imageId)}
-                              >
-                                <img 
-                                  src={image.dataUrl} 
-                                  alt={`Image ${index + 1}`}
-                                  className="h-32 w-32 object-cover rounded border border-gray-200 hover:shadow-md transition"
-                                />
-                                <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-20 transition-opacity"></div>
-                                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 truncate">
-                                  Click to view
+                    
+                    <div className="prose prose-sm max-w-none mb-6">
+                      <p className="text-gray-700">{submission.text}</p>
+                    </div>
+                    
+                    {/* Display images */}
+                    {submission.images && submission.images.length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="text-sm font-medium text-gray-700 mb-3">Attached Images ({submission.images.length})</h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                          {submission.images.map((imageId, index) => {
+                            const image = getImageFromStorage(imageId);
+                            
+                            if (image && image.dataUrl) {
+                              return (
+                                <div 
+                                  key={index} 
+                                  className="relative cursor-pointer group rounded-lg overflow-hidden" 
+                                  onClick={() => openImageViewer(imageId)}
+                                >
+                                  <img 
+                                    src={image.dataUrl} 
+                                    alt={`Image ${index + 1}`}
+                                    className="h-32 w-full object-cover hover:opacity-90 transition-opacity"
+                                  />
+                                  <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                                  <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-2 transform translate-y-full group-hover:translate-y-0 transition-transform">
+                                    Click to view full size
+                                  </div>
                                 </div>
+                              );
+                            } else {
+                              return (
+                                <div key={index} className="flex items-center p-4 rounded-lg bg-gray-100">
+                                  <svg className="w-8 h-8 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                  </svg>
+                                  <span className="text-sm text-gray-600">Image {index + 1}</span>
+                                </div>
+                              );
+                            }
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">Verification Status</h4>
+                      <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                        {submission.verifications.map(verification => (
+                          <div key={verification._id} className="flex items-start">
+                            <div className={`w-5 h-5 rounded-full flex-shrink-0 mt-0.5 mr-3 ${
+                              verification.approved ? 'bg-green-500' : 'bg-gray-300'
+                            }`}></div>
+                            <div>
+                              <div className="flex items-center">
+                                <span className="font-medium text-gray-900">{verification.verifier.name}</span>
+                                <span className="mx-2 text-gray-400">•</span>
+                                <span className={`text-sm ${
+                                  verification.approved 
+                                    ? 'text-green-600' 
+                                    : verification.comments 
+                                      ? 'text-orange-600' 
+                                      : 'text-gray-500'
+                                }`}>
+                                  {verification.approved 
+                                    ? 'Approved' 
+                                    : verification.comments 
+                                      ? 'Commented' 
+                                      : 'Pending Review'}
+                                </span>
                               </div>
-                            );
-                          } else {
-                            return (
-                              <div key={index} className="flex items-center p-2 rounded bg-gray-100">
-                                <svg className="w-6 h-6 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                </svg>
-                                <span className="text-sm">Image {index + 1}</span>
-                              </div>
-                            );
-                          }
-                        })}
+                              {verification.comments && (
+                                <p className="text-sm text-gray-700 mt-1 bg-white p-3 rounded border border-gray-100">
+                                  "{verification.comments}"
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  )}
-                  
-                  <div className="mt-2">
-                    <p className="text-sm font-medium mb-1">Verifications:</p>
-                    <div className="space-y-1">
-                      {submission.verifications.map(verification => (
-                        <div key={verification._id} className="flex items-center text-sm">
-                          <span className={`w-4 h-4 rounded-full mr-2 ${
-                            verification.approved ? 'bg-green-500' : 'bg-gray-300'
-                          }`}></span>
-                          <span>{verification.verifier.name}: </span>
-                          <span className="ml-1">
-                            {verification.approved 
-                              ? 'Approved' 
-                              : verification.comments 
-                                ? 'Commented' 
-                                : 'Pending'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </div>
         
-        <div className="md:col-span-1">
+        <div className="lg:col-span-1 space-y-8">
           {/* Job Provider Actions */}
           {user && user.role === 'job_provider' && job.jobProvider._id === user._id && job.status === 'open' && (
-            <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-              <h2 className="text-xl font-semibold mb-4">Select Freelancer</h2>
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <h2 className="text-xl font-bold mb-6 text-gray-900 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+                Select Freelancer
+              </h2>
               
               {job.applicants.length === 0 ? (
-                <p className="text-gray-600">No applications yet.</p>
+                <div className="text-center py-6 px-4 bg-gray-50 rounded-lg">
+                  <svg className="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                  </svg>
+                  <p className="text-gray-600 mb-2">No applications yet.</p>
+                  <p className="text-sm text-gray-500">Check back later or consider adjusting your job description.</p>
+                </div>
               ) : (
                 <>
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="block text-gray-700">
-                        Select Verifiers (at least 1)
+                  <div className="mb-6">
+                    <div className="flex justify-between items-center mb-3">
+                      <label className="block text-gray-700 font-medium">
+                        Select Verifiers <span className="text-red-500">*</span>
                       </label>
-                      <button 
-                        type="button"
-                        onClick={debugJobStatus}
-                        className="text-xs text-blue-600 underline"
-                      >
-                        Check Status
-                      </button>
                     </div>
                     
                     {verifiersLoading ? (
-                      <p className="text-sm text-gray-500">Loading verifiers...</p>
+                      <div className="flex items-center justify-center p-4 bg-gray-50 rounded-lg">
+                        <svg className="animate-spin h-5 w-5 text-blue-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span className="text-sm text-gray-500">Loading verifiers...</span>
+                      </div>
                     ) : (
-                      <div className="max-h-40 overflow-y-auto space-y-2 border p-2 rounded">
+                      <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-2">
                         {verifiers && verifiers.length > 0 ? (
                           verifiers.map(verifier => (
-                            <div key={verifier._id} className="flex items-center">
+                            <div key={verifier._id} className="flex items-center p-2 hover:bg-gray-50 rounded-lg">
                               <input
                                 type="checkbox"
                                 id={`verifier-${verifier._id}`}
                                 checked={selectedVerifiers.includes(verifier._id)}
                                 onChange={() => handleToggleVerifier(verifier._id)}
-                                className="mr-2"
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                               />
-                              <label htmlFor={`verifier-${verifier._id}`}>
+                              <label htmlFor={`verifier-${verifier._id}`} className="ml-2 block text-sm text-gray-900">
                                 {verifier.name}
                               </label>
                             </div>
                           ))
                         ) : (
-                          <p className="text-sm text-red-500">
-                            No verifiers available. Please make sure there are verifier users in the system.
-                          </p>
+                          <div className="text-center py-4">
+                            <p className="text-sm text-red-500">
+                              No verifiers available.
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Please make sure there are verifier users in the system.
+                            </p>
+                          </div>
                         )}
                       </div>
                     )}
                     
                     {verifiers.length === 0 && !verifiersLoading && (
-                      <div className="mt-2 p-2 border border-red-200 bg-red-50 rounded text-sm">
-                        <p>You need at least one verifier to select a freelancer. 
-                        Please create verifier accounts in the system first.</p>
+                      <div className="mt-2 p-3 bg-red-50 rounded-lg border border-red-100 text-sm text-red-700">
+                        <p className="flex items-start">
+                          <svg className="w-5 h-5 mr-2 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                          </svg>
+                          You need at least one verifier to select a freelancer. Please create verifier accounts in the system first.
+                        </p>
                       </div>
                     )}
                   </div>
 
                   {/* Filtering and sorting UI */}
-                  <div className="mb-4 p-3 bg-gray-50 rounded">
-                    <h3 className="font-medium mb-2">Filter & Sort Applicants</h3>
+                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <h3 className="font-medium mb-3 text-gray-900 flex items-center">
+                      <svg className="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                      </svg>
+                      Filter & Sort
+                    </h3>
                     
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      <div className="flex-1">
+                    <div className="space-y-3">
+                      <div>
                         <label className="block text-sm text-gray-600 mb-1">Filter by Skill</label>
                         <input
                           type="text"
                           value={filterSkill}
                           onChange={(e) => setFilterSkill(e.target.value)}
                           placeholder="Enter skill name..."
-                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
                       
-                      <div>
-                        <label className="block text-sm text-gray-600 mb-1">Sort By</label>
-                        <select 
-                          value={sortBy}
-                          onChange={(e) => setSortBy(e.target.value)}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm"
-                        >
-                          <option value="price">Price</option>
-                          <option value="skills">Matching Skills</option>
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm text-gray-600 mb-1">Order</label>
-                        <select 
-                          value={sortOrder}
-                          onChange={(e) => setSortOrder(e.target.value)}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm"
-                        >
-                          <option value="asc">Ascending</option>
-                          <option value="desc">Descending</option>
-                        </select>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm text-gray-600 mb-1">Sort By</label>
+                          <select 
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          >
+                            <option value="price">Price</option>
+                            <option value="skills">Matching Skills</option>
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm text-gray-600 mb-1">Order</label>
+                          <select 
+                            value={sortOrder}
+                            onChange={(e) => setSortOrder(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          >
+                            <option value="asc">Ascending</option>
+                            <option value="desc">Descending</option>
+                          </select>
+                        </div>
                       </div>
                     </div>
                   </div>
                   
                   {/* Applicant list */}
                   <div className="space-y-4">
-                    {getSortedAndFilteredApplicants().map(app => (
-                      <div key={app._id} className="border p-4 rounded">
-                                                <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-semibold">{app.freelancer.name}</h3>
-                          <span className="font-bold text-green-600">${app.price.toFixed(2)}</span>
+                    <h3 className="font-medium text-gray-900">
+                      Applicants ({getSortedAndFilteredApplicants().length})
+                    </h3>
+                    
+                    {getSortedAndFilteredApplicants().length === 0 ? (
+                      <p className="text-sm text-gray-500 text-center py-4">No applicants match your current filters.</p>
+                    ) : (
+                      getSortedAndFilteredApplicants().map(app => (
+                        <div key={app._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                          <div className="flex justify-between items-start mb-3">
+                            <h3 className="font-semibold text-gray-900">{app.freelancer.name}</h3>
+                            <span className="font-bold text-green-600">${app.price.toFixed(2)}</span>
+                          </div>
+                          
+                          <p className="text-sm text-gray-700 mb-3 line-clamp-2">{app.proposal}</p>
+                          
+                          <div className="mb-3">
+                            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Skills</span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {app.freelancer.skills.map(skill => (
+                                <span 
+                                  key={skill} 
+                                  className={`inline-block text-xs px-2 py-1 rounded-full ${
+                                    job.requiredSkills.includes(skill)
+                                      ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                                      : 'bg-gray-100 text-gray-800'
+                                  }`}
+                                >
+                                  {skill}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          <button
+                            type="button"
+                            onClick={() => handleSelectFreelancer(app.freelancer._id)}
+                            className={`w-full py-2 px-4 rounded-lg focus:outline-none flex items-center justify-center transition-colors ${
+                              verifiers.length > 0 && selectedVerifiers.length > 0
+                                ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
+                                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                            }`}
+                            disabled={verifiers.length === 0 || selectedVerifiers.length === 0}
+                          >
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Select this Freelancer
+                          </button>
                         </div>
-                        
-                        <p className="text-sm mb-3">{app.proposal}</p>
-                        
-                        <div className="mb-2">
-                          <span className="text-sm font-medium">Skills: </span>
-                          {app.freelancer.skills.map(skill => (
-                            <span 
-                              key={skill} 
-                              className="inline-block mr-1 px-2 py-0.5 bg-gray-100 text-gray-800 text-xs rounded"
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-                        
-                        {/* Main select button */}
-                        <button
-                          type="button"
-                          onClick={() => handleSelectFreelancer(app.freelancer._id)}
-                          className={`w-full py-2 px-4 rounded focus:outline-none ${
-                            verifiers.length > 0 && selectedVerifiers.length > 0
-                              ? 'bg-blue-500 text-white hover:bg-blue-600'
-                              : 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                          }`}
-                          disabled={verifiers.length === 0 || selectedVerifiers.length === 0}
-                        >
-                          Select this Freelancer
-                        </button>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </>
               )}
             </div>
           )}
           
-          {/* Applicants list for job providers */}
+          {/* Selected Freelancer for job providers */}
           {user && user.role === 'job_provider' && job.jobProvider._id === user._id && job.status !== 'open' && (
-            <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-              <h2 className="text-xl font-semibold mb-4">Selected Freelancer</h2>
-              <div className="mb-4">
-                <p className="font-semibold">{job.selectedFreelancer.name}</p>
-                <p className="text-sm text-gray-600">{job.selectedFreelancer.email}</p>
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <h2 className="text-xl font-bold mb-6 text-gray-900 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                </svg>
+                Selected Freelancer
+              </h2>
+              
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-100 mb-6">
+                <div className="flex items-start">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold mr-3 flex-shrink-0">
+                    {job.selectedFreelancer.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                  <h3 className="font-semibold text-gray-900">{job.selectedFreelancer.name}</h3>
+                    <p className="text-sm text-gray-600">{job.selectedFreelancer.email}</p>
+                  </div>
+                </div>
               </div>
               
-              <h3 className="text-lg font-semibold mb-2">Verifiers</h3>
-              <ul className="list-disc list-inside">
-                {job.verifiers.map(verifier => (
-                  <li key={verifier._id} className="text-sm">
-                    {verifier.name}
-                  </li>
-                ))}
-              </ul>
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Assigned Verifiers</h3>
+                <ul className="space-y-2">
+                  {job.verifiers.map(verifier => (
+                    <li key={verifier._id} className="flex items-center p-2 bg-gray-50 rounded-lg">
+                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-green-600 font-bold mr-2">
+                        {verifier.name.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="text-gray-800">{verifier.name}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
               
-              {/* Important: Button to update job status if still in "assigned" state */}
+              {/* Button to update job status if still in "assigned" state */}
               {job.status === 'assigned' && (
-                <div className="mt-4 pt-4 border-t">
+                <div className="mt-6 pt-4 border-t border-gray-100">
                   <button
                     type="button"
                     onClick={async () => {
@@ -982,8 +1180,12 @@ const JobDetailsPage = () => {
                         alert('Error updating job status: ' + error.response?.data?.message || 'Unknown error');
                       }
                     }}
-                    className="w-full py-2 px-4 rounded bg-blue-500 text-white hover:bg-blue-600 focus:outline-none"
+                    className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm flex items-center justify-center"
                   >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
                     Start Job (Set to In Progress)
                   </button>
                 </div>
@@ -992,36 +1194,81 @@ const JobDetailsPage = () => {
           )}
           
           {/* Job Status for everyone */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold mb-4">Job Status</h2>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>Status:</span>
-                <span className={`font-medium capitalize ${
-                  job.status === 'open' ? 'text-blue-600' :
-                  job.status === 'assigned' ? 'text-orange-600' :
-                  job.status === 'in_progress' ? 'text-purple-600' :
-                  job.status === 'completed' ? 'text-green-600' : ''
-                }`}>{job.status.replace('_', ' ')}</span>
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h2 className="text-xl font-bold mb-6 text-gray-900 flex items-center">
+              <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              Job Information
+            </h2>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-500 mb-1">Status</p>
+                  <p className={`font-medium capitalize ${
+                    job.status === 'open' ? 'text-blue-600' :
+                    job.status === 'assigned' ? 'text-orange-600' :
+                    job.status === 'in_progress' ? 'text-purple-600' :
+                    job.status === 'completed' ? 'text-green-600' : ''
+                  }`}>
+                    <span className="flex items-center">
+                      {job.status === 'open' && (
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                      )}
+                      {job.status === 'assigned' && (
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                      )}
+                      {job.status === 'in_progress' && (
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                        </svg>
+                      )}
+                      {job.status === 'completed' && (
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                      )}
+                      {job.status.replace('_', ' ')}
+                    </span>
+                  </p>
+                </div>
+                
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-500 mb-1">Applicants</p>
+                  <p className="font-medium">{job.applicants.length}</p>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span>Applications:</span>
-                <span>{job.applicants.length}</span>
+              
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-500 mb-1">Job Posted</p>
+                <p className="font-medium">
+                  {new Date(job.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </p>
               </div>
+              
               {job.selectedFreelancer && (
-                <div className="flex justify-between">
-                  <span>Freelancer:</span>
-                  <span>{job.selectedFreelancer.name}</span>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-500 mb-1">Selected Freelancer</p>
+                  <p className="font-medium">{job.selectedFreelancer.name}</p>
                 </div>
               )}
-              <div className="flex justify-between">
-                <span>Budget:</span>
-                <span className="font-bold text-green-600">${job.budget.toFixed(2)}</span>
-              </div>
+              
               {job.status === 'completed' && (
-                <div className="mt-4 pt-4 border-t text-center">
-                  <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-                    Job Completed
+                <div className="mt-4 pt-4 border-t border-gray-100 text-center">
+                  <span className="inline-block bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm">
+                    <svg className="inline-block w-4 h-4 mr-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Job Successfully Completed
                   </span>
                 </div>
               )}
@@ -1029,12 +1276,15 @@ const JobDetailsPage = () => {
             
             {/* Button to navigate to the jobs list for freelancers */}
             {user && user.role === 'freelancer' && (
-              <div className="mt-4 pt-4 border-t">
+              <div className="mt-6 pt-4 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={navigateToMyJobs}
-                  className="w-full py-2 px-4 rounded bg-gray-500 text-white hover:bg-gray-600 focus:outline-none"
+                  className="w-full py-3 px-4 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors shadow-sm flex items-center justify-center"
                 >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                  </svg>
                   View All My Jobs
                 </button>
               </div>
@@ -1043,162 +1293,57 @@ const JobDetailsPage = () => {
           
           {/* Quick info about job visibility for freelancers */}
           {user && user.role === 'freelancer' && (
-            <div className="bg-white p-4 rounded-lg shadow-md mt-4 text-sm">
-              <h3 className="font-medium mb-2">Job Visibility Info</h3>
-              <ul className="space-y-1 text-gray-600">
-                <li>• Open jobs: Visible to all freelancers</li>
-                <li>• Assigned/In Progress jobs: Only visible to the selected freelancer</li>
-                <li>• Your assigned jobs can be found in the "My Jobs" section</li>
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <h3 className="font-medium mb-4 text-gray-900 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Job Visibility Information
+              </h3>
+              <ul className="space-y-2 text-gray-600 text-sm">
+                <li className="flex items-start">
+                  <svg className="w-5 h-5 text-blue-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <span>Open jobs are visible to all freelancers</span>
+                </li>
+                <li className="flex items-start">
+                  <svg className="w-5 h-5 text-blue-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <span>Assigned and in-progress jobs are only visible to the selected freelancer</span>
+                </li>
+                <li className="flex items-start">
+                  <svg className="w-5 h-5 text-blue-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <span>Your assigned jobs can be found in the "My Jobs" section</span>
+                </li>
               </ul>
             </div>
           )}
         </div>
       </div>
       
-      {/* Debug floating panel - only visible during certain conditions */}
-      {user && user.role === 'freelancer' && job.selectedFreelancer && !isSelectedFreelancer && (
-        <div className="fixed bottom-4 right-4 p-4 bg-white shadow-lg rounded-lg border-2 border-yellow-500 max-w-md z-10">
-          <h3 className="font-bold text-lg mb-2">Looking for your assigned jobs?</h3>
-          <p className="text-sm mb-2">This job is assigned to another freelancer. Your assigned jobs can be found in the My Jobs section.</p>
-          <button 
-            onClick={navigateToMyJobs}
-            className="w-full mt-2 px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-          >
-            Go to My Jobs
-          </button>
-        </div>
-      )}
-      
-      {/* Helper panel for selected freelancers to debug visibility issues */}
-      {user && 
-       user.role === 'freelancer' && 
-       job.selectedFreelancer && 
-       isSelectedFreelancer && 
-       (job.status === 'assigned' || job.status === 'in_progress') && (
-        <div className="fixed bottom-4 right-4 p-4 bg-white shadow-lg rounded-lg border-2 border-green-500 max-w-md z-10">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-bold text-lg">You are assigned to this job!</h3>
-            <button 
-              onClick={() => document.querySelector('.fixed.bottom-4.right-4').remove()}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              ×
-            </button>
-          </div>
-          <div className="text-sm">
-            <p className="mb-2">Job Status: <span className="font-semibold capitalize">{job.status.replace('_', ' ')}</span></p>
-            <p className="mb-2 text-green-600 font-medium">You can submit your work using the form above.</p>
-            <p className="text-xs text-gray-500">If you're having trouble seeing your work submission form, try refreshing the page.</p>
-            <div className="flex space-x-2 mt-2">
-              <button 
-                onClick={() => window.location.reload()}
-                className="flex-1 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-              >
-                Refresh Page
-              </button>
-              <button 
-                onClick={debugJobStatus}
-                className="flex-1 px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm"
-              >
-                Check Status
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Reminder panel for job providers to update job status */}
-      {user && 
-       user.role === 'job_provider' && 
-       job.jobProvider._id === user._id && 
-       job.selectedFreelancer && 
-       job.status === 'assigned' && (
-        <div className="fixed bottom-4 left-4 p-4 bg-white shadow-lg rounded-lg border-2 border-blue-500 max-w-md z-10">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-bold text-lg">Job Assigned - Next Steps</h3>
-            <button 
-              onClick={() => document.querySelector('.fixed.bottom-4.left-4').remove()}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              ×
-            </button>
-          </div>
-          <p className="text-sm mb-3">
-            You've selected a freelancer, but the job is still in "assigned" status. 
-            Change to "in progress" so the freelancer can submit work.
-          </p>
-          <button
-            onClick={async () => {
-              try {
-                const token = localStorage.getItem('authToken');
-                const response = await axios.put(
-                  `http://localhost:5000/api/jobs/${job._id}/update-status`, 
-                  { status: 'in_progress' },
-                  { headers: { 'Authorization': `Bearer ${token}` }}
-                );
-                
-                // Update the job with the new data
-                setJob(response.data);
-                
-                // Remove the notification panel
-                document.querySelector('.fixed.bottom-4.left-4').remove();
-                
-                alert('Job status updated to "in progress"!');
-              } catch (error) {
-                console.error('Error updating job status:', error);
-                alert('Error updating job status: ' + error.response?.data?.message || 'Unknown error');
-              }
-            }}
-            className="w-full py-2 px-4 rounded bg-blue-500 text-white hover:bg-blue-600 focus:outline-none"
-          >
-            Update to "In Progress" Status
-          </button>
-        </div>
-      )}
-      
       {/* Image viewer modal */}
       {viewingImage && (
-        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" onClick={closeImageViewer}>
-          <div className="relative max-w-4xl max-h-screen p-2" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50" onClick={closeImageViewer}>
+          <div className="relative max-w-4xl max-h-screen p-4" onClick={e => e.stopPropagation()}>
             <button 
               onClick={closeImageViewer}
-              className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center z-10"
+              className="absolute top-4 right-4 bg-red-600 text-white rounded-full w-10 h-10 flex items-center justify-center z-10 hover:bg-red-700 transition-colors"
+              aria-label="Close image viewer"
             >
-              ×
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
             </button>
             <img 
               src={viewingImage} 
               alt="Full size preview" 
-              className="max-w-full max-h-[90vh] object-contain"
+              className="max-w-full max-h-[90vh] object-contain mx-auto shadow-2xl"
             />
           </div>
-        </div>
-      )}
-      
-      {/* Debug panel - hidden in production, useful for testing */}
-      {user && user.role === 'verifier' && (
-        <div className="fixed bottom-4 right-4 bg-white p-3 rounded shadow-lg border border-gray-200 z-40">
-          <h4 className="font-medium text-sm mb-1">Debug: Storage Info</h4>
-          <button
-            onClick={() => {
-              try {
-                const storageKey = `job_images_${id}`;
-                const storedData = localStorage.getItem(storageKey);
-                if (storedData) {
-                  const images = JSON.parse(storedData);
-                  alert(`Found ${Object.keys(images).length} stored images for this job`);
-                  console.log('Stored images:', images);
-                } else {
-                  alert('No stored images found for this job');
-                }
-              } catch (error) {
-                alert('Error checking storage: ' + error.message);
-              }
-            }}
-            className="bg-blue-500 text-white text-xs py-1 px-2 rounded"
-          >
-            Check Image Storage
-          </button>
         </div>
       )}
     </div>

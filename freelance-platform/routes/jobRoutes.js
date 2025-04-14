@@ -40,6 +40,57 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Get jobs created by provider
+router.get('/provider', protect, authorize('job_provider'), async (req, res) => {
+  try {
+    const jobs = await Job.find({ jobProvider: req.user.id })
+      .populate('jobProvider', 'name email')
+      .populate('selectedFreelancer', 'name email')
+      .populate('verifiers', 'name email')
+      .populate('applicants.freelancer', 'name email skills')
+      .sort({ createdAt: -1 });
+    
+    res.json(jobs);
+  } catch (error) {
+    console.error('Error fetching provider jobs:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Get jobs by freelancer
+router.get('/freelancer/assigned', protect, authorize('freelancer'), async (req, res) => {
+  try {
+    const jobs = await Job.find({ 
+      selectedFreelancer: req.user.id,
+      status: { $in: ['assigned', 'in_progress'] }
+    })
+      .populate('jobProvider', 'name email')
+      .populate('verifiers', 'name email');
+    
+    res.json(jobs);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Get jobs to verify
+router.get('/verifier/assigned', protect, authorize('verifier'), async (req, res) => {
+  try {
+    const jobs = await Job.find({ 
+      verifiers: req.user.id,
+      status: { $in: ['assigned', 'in_progress'] }
+    })
+      .populate('jobProvider', 'name email')
+      .populate('selectedFreelancer', 'name email');
+    
+    res.json(jobs);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 // Get job by ID
 router.get('/:id', async (req, res) => {
   try {
@@ -145,40 +196,6 @@ router.put('/:id/select-freelancer', protect, authorize('job_provider'), async (
     await job.save();
     
     res.json(job);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server Error' });
-  }
-});
-
-// Get jobs by freelancer
-router.get('/freelancer/assigned', protect, authorize('freelancer'), async (req, res) => {
-  try {
-    const jobs = await Job.find({ 
-      selectedFreelancer: req.user.id,
-      status: { $in: ['assigned', 'in_progress'] }
-    })
-      .populate('jobProvider', 'name email')
-      .populate('verifiers', 'name email');
-    
-    res.json(jobs);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server Error' });
-  }
-});
-
-// Get jobs to verify
-router.get('/verifier/assigned', protect, authorize('verifier'), async (req, res) => {
-  try {
-    const jobs = await Job.find({ 
-      verifiers: req.user.id,
-      status: { $in: ['assigned', 'in_progress'] }
-    })
-      .populate('jobProvider', 'name email')
-      .populate('selectedFreelancer', 'name email');
-    
-    res.json(jobs);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server Error' });
