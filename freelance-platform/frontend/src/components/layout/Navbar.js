@@ -1,13 +1,19 @@
 import React, { useContext, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AuthContext from '../../context/AuthContext';
 
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
+  };
+  
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
   };
   
   return (
@@ -54,7 +60,7 @@ const Navbar = () => {
                 </Link>
                 
                 <button
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="ml-4 bg-red-500 hover:bg-red-600 px-4 py-2 rounded-md transition-colors duration-200 flex items-center font-medium"
                 >
                   <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -139,7 +145,7 @@ const Navbar = () => {
               
               <button
                 onClick={() => {
-                  logout();
+                  handleLogout();
                   setMobileMenuOpen(false);
                 }}
                 className="w-full text-left px-3 py-2 rounded-md bg-red-500 hover:bg-red-600 font-medium"

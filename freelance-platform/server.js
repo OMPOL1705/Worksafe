@@ -7,6 +7,10 @@ const userRoutes = require('./routes/userRoutes');
 const jobRoutes = require('./routes/jobRoutes');
 const submissionRoutes = require('./routes/submissionRoutes');
 const verificationRoutes = require('./routes/verificationRoutes');
+// Add this with your other route imports
+const jobChat = require('./routes/jobChat');
+
+
 
 dotenv.config();
 
@@ -27,6 +31,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/verifications', verificationRoutes);
+app.use('/api/chat', jobChat);
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {

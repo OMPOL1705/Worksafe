@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import AuthContext from '../../context/AuthContext';
@@ -30,6 +30,11 @@ const JobDetailsPage = () => {
   const [previewImages, setPreviewImages] = useState([]);
   const [viewingImage, setViewingImage] = useState(null);
   const [sharedImages, setSharedImages] = useState({});
+  const [chatOpen, setChatOpen] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const messagesEndRef = useRef(null);
   
   // Set up axios with auth headers
   useEffect(() => {
@@ -67,7 +72,7 @@ const JobDetailsPage = () => {
           console.log('Job has selected freelancer, fetching submissions');
           try {
             const submissionsRes = await axios.get(`http://localhost:5000/api/submissions/job/${id}`, { headers });
-            setSubmissions(submissionsRes.data);
+          setSubmissions(submissionsRes.data);
           } catch (submissionError) {
             console.error('Error fetching submissions:', submissionError);
             // Don't fail completely if submissions can't be fetched
@@ -120,7 +125,7 @@ const JobDetailsPage = () => {
           
           if (res.data && Array.isArray(res.data) && res.data.length > 0) {
             console.log('Verifiers loaded:', res.data.length, res.data);
-            setVerifiers(res.data);
+          setVerifiers(res.data);
             // Auto-select the first verifier
             setSelectedVerifiers([res.data[0]._id]);
           } else {
@@ -148,6 +153,18 @@ const JobDetailsPage = () => {
       });
     };
   }, [previewImages]);
+  
+  useEffect(() => {
+    if (messagesEndRef.current && chatOpen) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, chatOpen]);
+  
+  useEffect(() => {
+    if (chatOpen && job) {
+      fetchChatMessages();
+    }
+  }, [chatOpen, job]);
   
   const handleApplicationChange = (e) => {
     setApplicationForm({ ...applicationForm, [e.target.name]: e.target.value });
@@ -228,7 +245,7 @@ const JobDetailsPage = () => {
     if (selectedVerifiers.includes(verifierId)) {
       // Don't allow deselecting if it's the only verifier
       if (selectedVerifiers.length > 1) {
-        setSelectedVerifiers(selectedVerifiers.filter(id => id !== verifierId));
+      setSelectedVerifiers(selectedVerifiers.filter(id => id !== verifierId));
       }
     } else {
       setSelectedVerifiers([...selectedVerifiers, verifierId]);
@@ -412,6 +429,181 @@ const JobDetailsPage = () => {
     return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="${color}" /><text x="50%" y="50%" font-family="Arial" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">${filename.split('.').pop().toUpperCase()}</text></svg>`;
   };
   
+  // Updated to use backend API instead of mock data
+  const fetchChatMessages = async () => {
+    try {
+      setChatLoading(true);
+      
+      // Get token from localStorage
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        console.error('No auth token found for fetching chat messages');
+        setChatLoading(false);
+        return;
+      }
+      
+      // Make API call to get messages for this job
+      const response = await axios.get(`http://localhost:5000/api/chat/job/${job._id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      console.log('Chat messages loaded from database:', response.data);
+      setMessages(response.data);
+      setChatLoading(false);
+    } catch (error) {
+      console.error('Error fetching chat messages:', error);
+      
+      // Handle specific error cases
+      if (error.response && error.response.status === 401) {
+        console.log('Authentication error when fetching messages. Please log in again.');
+        // Optionally redirect to login here
+      }
+      
+      setChatLoading(false);
+      setMessages([]); // Reset messages on error
+    }
+  };
+  
+  // Updated to store messages in database via API
+  const sendMessage = async (e) => {
+    e.preventDefault();
+    
+    if (!newMessage.trim() || !job) return;
+    
+    try {
+      // Create a temporary message object for immediate UI feedback
+      const tempMessageObj = {
+        _id: `temp-${Date.now()}`,
+        sender: { 
+          _id: user._id, 
+          name: user.name, 
+          role: user.role 
+        },
+        text: newMessage.trim(),
+        timestamp: new Date().toISOString(),
+        pending: true
+      };
+      
+      // Add to messages immediately for UI feedback
+      setMessages(prev => [...prev, tempMessageObj]);
+      setNewMessage('');
+      
+      // Get token from localStorage
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      
+      // Send to API 
+      const response = await axios.post('http://localhost:5000/api/chat/messages', {
+        jobId: job._id,
+        text: newMessage.trim()
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      console.log('Message saved to database:', response.data);
+      
+      // Replace temporary message with confirmed message from server
+      setMessages(prev => 
+        prev.map(msg => 
+          msg._id === tempMessageObj._id 
+            ? response.data // Use the server-returned message
+            : msg
+        )
+      );
+    } catch (error) {
+      console.error('Error sending message:', error);
+      
+      // Show error state for the message
+      setMessages(prev => 
+        prev.map(msg => 
+          msg._id === `temp-${Date.now()}` 
+            ? { ...msg, error: true, errorMessage: error.response?.data?.msg || 'Failed to send' } 
+            : msg
+        )
+      );
+      
+      // Optional: Display error to user
+      if (error.response?.status === 401) {
+        alert('Your session has expired. Please log in again.');
+        // Optionally redirect to login
+      } else {
+        console.error('Error details:', error.response?.data || error.message);
+      }
+    }
+  };
+  
+  // Format timestamp for chat messages
+  const formatMessageTime = (timestamp) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays > 0) {
+      return `${diffDays}d ago`;
+    }
+    
+    const diffHours = Math.floor((now - date) / (1000 * 60 * 60));
+    if (diffHours > 0) {
+      return `${diffHours}h ago`;
+    }
+    
+    const diffMinutes = Math.floor((now - date) / (1000 * 60));
+    if (diffMinutes > 0) {
+      return `${diffMinutes}m ago`;
+    }
+    
+    return 'Just now';
+  };
+  
+  // Get avatar background color based on user role
+  const getAvatarColor = (role) => {
+    switch (role) {
+      case 'freelancer':
+        return 'bg-blue-500';
+      case 'job_provider':
+        return 'bg-purple-500';
+      case 'verifier':
+        return 'bg-green-500';
+      case 'system':
+        return 'bg-gray-500';
+      default:
+        return 'bg-gray-400';
+    }
+  };
+  
+  // Get initials from name
+  const getInitials = (name) => {
+    if (!name || name === 'System') return '📣';
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+  
+  // Check if user can access chat
+  const canAccessChat = () => {
+    if (!user || !job) return false;
+    
+    // Job provider can always access
+    if (user._id === job.jobProvider._id) return true;
+    
+    // Selected freelancer can access 
+    if (job.selectedFreelancer && user._id === job.selectedFreelancer._id) return true;
+    
+    // Verifiers can access
+    if (job.verifiers.some(v => v._id === user._id)) return true;
+    
+    return false;
+  };
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -506,7 +698,7 @@ const JobDetailsPage = () => {
     
     return filteredApplicants;
   };
-
+  
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Job access notification for freelancers */}
@@ -564,7 +756,7 @@ const JobDetailsPage = () => {
         </div>
         
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-6">
-          <div>
+    <div>
             <h1 className="text-3xl font-bold text-gray-900">{job.title}</h1>
             <div className="flex flex-wrap items-center gap-3 mt-2">
               <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${
@@ -626,16 +818,16 @@ const JobDetailsPage = () => {
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <span className="text-gray-500">$</span>
                     </div>
-                    <input
-                      type="number"
-                      id="price"
-                      name="price"
-                      value={applicationForm.price}
-                      onChange={handleApplicationChange}
+                  <input
+                    type="number"
+                    id="price"
+                    name="price"
+                    value={applicationForm.price}
+                    onChange={handleApplicationChange}
                       className="pl-8 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                      min="1"
-                    />
+                    required
+                    min="1"
+                  />
                   </div>
                   <p className="mt-1 text-sm text-gray-500">Set a competitive price to increase your chances</p>
                 </div>
@@ -740,15 +932,15 @@ const JobDetailsPage = () => {
                     Upload Images <span className="text-gray-500 font-normal">(Optional)</span>
                   </label>
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
-                    <input
-                      type="file"
-                      id="images"
-                      name="images"
-                      onChange={handleImageChange}
+                  <input
+                    type="file"
+                    id="images"
+                    name="images"
+                    onChange={handleImageChange}
                       className="hidden"
-                      multiple
-                      accept="image/*"
-                    />
+                    multiple
+                    accept="image/*"
+                  />
                     <label htmlFor="images" className="cursor-pointer flex flex-col items-center">
                       <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
@@ -813,18 +1005,18 @@ const JobDetailsPage = () => {
               </h2>
               
               <div className="space-y-8">
-                {submissions.map(submission => (
+              {submissions.map(submission => (
                   <div key={submission._id} className="border-b border-gray-100 pb-8 mb-8 last:border-b-0 last:pb-0 last:mb-0">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center">
                         <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold mr-3">
                           {submission.freelancer.name.charAt(0).toUpperCase()}
                         </div>
-                        <div>
+                    <div>
                           <h3 className="font-medium text-gray-900">
                             {submission.freelancer.name}
                           </h3>
-                          <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500">
                             {new Date(submission.createdAt).toLocaleDateString('en-US', {
                               year: 'numeric', 
                               month: 'short', 
@@ -832,20 +1024,20 @@ const JobDetailsPage = () => {
                               hour: '2-digit',
                               minute: '2-digit'
                             })}
-                          </p>
-                        </div>
+                      </p>
+                    </div>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-medium uppercase ${
-                        submission.status === 'approved'
-                          ? 'bg-green-100 text-green-800'
-                          : submission.status === 'rejected'
-                          ? 'bg-red-100 text-red-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
+                      submission.status === 'approved'
+                        ? 'bg-green-100 text-green-800'
+                        : submission.status === 'rejected'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
                         {submission.status}
-                      </span>
-                    </div>
-                    
+                    </span>
+                  </div>
+                  
                     <div className="prose prose-sm max-w-none mb-6">
                       <p className="text-gray-700">{submission.text}</p>
                     </div>
@@ -868,12 +1060,12 @@ const JobDetailsPage = () => {
                                   <img 
                                     src={image.dataUrl} 
                                     alt={`Image ${index + 1}`}
-                                    className="h-32 w-full object-cover hover:opacity-90 transition-opacity"
+                                    className="h-32 w-full object-cover"
                                   />
                                   <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-20 transition-opacity"></div>
                                   <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-2 transform translate-y-full group-hover:translate-y-0 transition-transform">
                                     Click to view full size
-                                  </div>
+                          </div>
                                 </div>
                               );
                             } else {
@@ -887,17 +1079,17 @@ const JobDetailsPage = () => {
                               );
                             }
                           })}
-                        </div>
                       </div>
-                    )}
-                    
+                    </div>
+                  )}
+                  
                     <div>
                       <h4 className="text-sm font-medium text-gray-700 mb-3">Verification Status</h4>
                       <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                        {submission.verifications.map(verification => (
+                      {submission.verifications.map(verification => (
                           <div key={verification._id} className="flex items-start">
                             <div className={`w-5 h-5 rounded-full flex-shrink-0 mt-0.5 mr-3 ${
-                              verification.approved ? 'bg-green-500' : 'bg-gray-300'
+                            verification.approved ? 'bg-green-500' : 'bg-gray-300'
                             }`}></div>
                             <div>
                               <div className="flex items-center">
@@ -910,12 +1102,12 @@ const JobDetailsPage = () => {
                                       ? 'text-orange-600' 
                                       : 'text-gray-500'
                                 }`}>
-                                  {verification.approved 
-                                    ? 'Approved' 
-                                    : verification.comments 
-                                      ? 'Commented' 
+                            {verification.approved 
+                              ? 'Approved' 
+                              : verification.comments 
+                                ? 'Commented' 
                                       : 'Pending Review'}
-                                </span>
+                          </span>
                               </div>
                               {verification.comments && (
                                 <p className="text-sm text-gray-700 mt-1 bg-white p-3 rounded border border-gray-100">
@@ -923,12 +1115,12 @@ const JobDetailsPage = () => {
                                 </p>
                               )}
                             </div>
-                          </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
+                </div>
+              ))}
               </div>
             </div>
           )}
@@ -959,7 +1151,7 @@ const JobDetailsPage = () => {
                     <div className="flex justify-between items-center mb-3">
                       <label className="block text-gray-700 font-medium">
                         Select Verifiers <span className="text-red-500">*</span>
-                      </label>
+                    </label>
                     </div>
                     
                     {verifiersLoading ? (
@@ -975,17 +1167,17 @@ const JobDetailsPage = () => {
                         {verifiers && verifiers.length > 0 ? (
                           verifiers.map(verifier => (
                             <div key={verifier._id} className="flex items-center p-2 hover:bg-gray-50 rounded-lg">
-                              <input
-                                type="checkbox"
-                                id={`verifier-${verifier._id}`}
-                                checked={selectedVerifiers.includes(verifier._id)}
-                                onChange={() => handleToggleVerifier(verifier._id)}
+                          <input
+                            type="checkbox"
+                            id={`verifier-${verifier._id}`}
+                            checked={selectedVerifiers.includes(verifier._id)}
+                            onChange={() => handleToggleVerifier(verifier._id)}
                                 className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                              />
+                          />
                               <label htmlFor={`verifier-${verifier._id}`} className="ml-2 block text-sm text-gray-900">
-                                {verifier.name}
-                              </label>
-                            </div>
+                            {verifier.name}
+                          </label>
+                        </div>
                           ))
                         ) : (
                           <div className="text-center py-4">
@@ -995,9 +1187,9 @@ const JobDetailsPage = () => {
                             <p className="text-xs text-gray-500 mt-1">
                               Please make sure there are verifier users in the system.
                             </p>
-                          </div>
+                    </div>
                         )}
-                      </div>
+                  </div>
                     )}
                     
                     {verifiers.length === 0 && !verifiersLoading && (
@@ -1034,28 +1226,28 @@ const JobDetailsPage = () => {
                       </div>
                       
                       <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-sm text-gray-600 mb-1">Sort By</label>
-                          <select 
-                            value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value)}
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Sort By</label>
+                        <select 
+                          value={sortBy}
+                          onChange={(e) => setSortBy(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          >
-                            <option value="price">Price</option>
-                            <option value="skills">Matching Skills</option>
-                          </select>
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm text-gray-600 mb-1">Order</label>
-                          <select 
-                            value={sortOrder}
-                            onChange={(e) => setSortOrder(e.target.value)}
+                        >
+                          <option value="price">Price</option>
+                          <option value="skills">Matching Skills</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Order</label>
+                        <select 
+                          value={sortOrder}
+                          onChange={(e) => setSortOrder(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          >
-                            <option value="asc">Ascending</option>
-                            <option value="desc">Descending</option>
-                          </select>
+                        >
+                          <option value="asc">Ascending</option>
+                          <option value="desc">Descending</option>
+                        </select>
                         </div>
                       </div>
                     </div>
@@ -1074,32 +1266,32 @@ const JobDetailsPage = () => {
                         <div key={app._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                           <div className="flex justify-between items-start mb-3">
                             <h3 className="font-semibold text-gray-900">{app.freelancer.name}</h3>
-                            <span className="font-bold text-green-600">${app.price.toFixed(2)}</span>
-                          </div>
-                          
+                          <span className="font-bold text-green-600">${app.price.toFixed(2)}</span>
+                        </div>
+                        
                           <p className="text-sm text-gray-700 mb-3 line-clamp-2">{app.proposal}</p>
-                          
+                        
                           <div className="mb-3">
                             <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Skills</span>
                             <div className="flex flex-wrap gap-1 mt-1">
-                              {app.freelancer.skills.map(skill => (
-                                <span 
-                                  key={skill} 
+                          {app.freelancer.skills.map(skill => (
+                            <span 
+                              key={skill} 
                                   className={`inline-block text-xs px-2 py-1 rounded-full ${
                                     job.requiredSkills.includes(skill)
                                       ? 'bg-blue-100 text-blue-800 border border-blue-200'
                                       : 'bg-gray-100 text-gray-800'
                                   }`}
-                                >
-                                  {skill}
-                                </span>
-                              ))}
+                            >
+                              {skill}
+                            </span>
+                          ))}
                             </div>
-                          </div>
-                          
-                          <button
+                        </div>
+                        
+                        <button
                             type="button"
-                            onClick={() => handleSelectFreelancer(app.freelancer._id)}
+                          onClick={() => handleSelectFreelancer(app.freelancer._id)}
                             className={`w-full py-2 px-4 rounded-lg focus:outline-none flex items-center justify-center transition-colors ${
                               verifiers.length > 0 && selectedVerifiers.length > 0
                                 ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
@@ -1110,9 +1302,9 @@ const JobDetailsPage = () => {
                             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                             </svg>
-                            Select this Freelancer
-                          </button>
-                        </div>
+                          Select this Freelancer
+                        </button>
+                      </div>
                       ))
                     )}
                   </div>
@@ -1138,7 +1330,7 @@ const JobDetailsPage = () => {
                   </div>
                   <div>
                   <h3 className="font-semibold text-gray-900">{job.selectedFreelancer.name}</h3>
-                    <p className="text-sm text-gray-600">{job.selectedFreelancer.email}</p>
+                <p className="text-sm text-gray-600">{job.selectedFreelancer.email}</p>
                   </div>
                 </div>
               </div>
@@ -1146,15 +1338,15 @@ const JobDetailsPage = () => {
               <div className="mb-6">
                 <h3 className="text-sm font-medium text-gray-700 mb-3">Assigned Verifiers</h3>
                 <ul className="space-y-2">
-                  {job.verifiers.map(verifier => (
+                {job.verifiers.map(verifier => (
                     <li key={verifier._id} className="flex items-center p-2 bg-gray-50 rounded-lg">
                       <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-green-600 font-bold mr-2">
                         {verifier.name.charAt(0).toUpperCase()}
                       </div>
                       <span className="text-gray-800">{verifier.name}</span>
-                    </li>
-                  ))}
-                </ul>
+                  </li>
+                ))}
+              </ul>
               </div>
               
               {/* Button to update job status if still in "assigned" state */}
@@ -1236,12 +1428,12 @@ const JobDetailsPage = () => {
                       {job.status.replace('_', ' ')}
                     </span>
                   </p>
-                </div>
+              </div>
                 
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <p className="text-sm text-gray-500 mb-1">Applicants</p>
                   <p className="font-medium">{job.applicants.length}</p>
-                </div>
+              </div>
               </div>
               
               <div className="bg-gray-50 p-4 rounded-lg">
@@ -1287,9 +1479,9 @@ const JobDetailsPage = () => {
                   </svg>
                   View All My Jobs
                 </button>
-              </div>
-            )}
           </div>
+            )}
+        </div>
           
           {/* Quick info about job visibility for freelancers */}
           {user && user.role === 'freelancer' && (
@@ -1320,7 +1512,7 @@ const JobDetailsPage = () => {
                   <span>Your assigned jobs can be found in the "My Jobs" section</span>
                 </li>
               </ul>
-            </div>
+      </div>
           )}
         </div>
       </div>
@@ -1344,6 +1536,177 @@ const JobDetailsPage = () => {
               className="max-w-full max-h-[90vh] object-contain mx-auto shadow-2xl"
             />
           </div>
+        </div>
+      )}
+      
+      {/* Chat section - only visible to job participants when a freelancer is selected */}
+      {job && job.status !== 'open' && canAccessChat() && (
+        <div className="mt-8">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">Project Communication</h2>
+            <button
+              onClick={() => setChatOpen(!chatOpen)}
+              className="flex items-center bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1 rounded font-medium text-sm transition-colors"
+            >
+              {chatOpen ? (
+                <>
+                  <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                  Hide Chat
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                  </svg>
+                  Show Chat ({messages.length})
+                </>
+              )}
+            </button>
+          </div>
+          
+          {chatOpen && (
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              {/* Chat header with participants */}
+              <div className="bg-gray-50 p-3 border-b border-gray-200">
+                <div className="flex items-center space-x-2">
+                  <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                  </svg>
+                  <h3 className="text-sm font-medium">Chat with project team</h3>
+                </div>
+                
+                <div className="flex items-center mt-2 text-xs text-gray-500">
+                  <span className="mr-2">Participants:</span>
+                  <div className="flex -space-x-2 mr-2">
+                    {/* Job Provider */}
+                    <div 
+                      className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center text-white text-xs font-bold border-2 border-white"
+                      title={`${job.jobProvider.name} (Job Provider)`}
+                    >
+                      {getInitials(job.jobProvider.name)}
+                    </div>
+                    
+                    {/* Selected Freelancer */}
+                    {job.selectedFreelancer && (
+                      <div 
+                        className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold border-2 border-white"
+                        title={`${job.selectedFreelancer.name} (Freelancer)`}
+                      >
+                        {getInitials(job.selectedFreelancer.name)}
+                      </div>
+                    )}
+                    
+                    {/* Verifiers */}
+                    {job.verifiers.map((verifier) => (
+                      <div 
+                        key={verifier._id}
+                        className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-bold border-2 border-white"
+                        title={`${verifier.name} (Verifier)`}
+                      >
+                        {getInitials(verifier.name)}
+                      </div>
+                    ))}
+                  </div>
+                  <span className="truncate max-w-xs">
+                    {job.jobProvider.name}
+                    {job.selectedFreelancer && `, ${job.selectedFreelancer.name}`}
+                    {job.verifiers.length > 0 && `, ${job.verifiers.map(v => v.name).join(', ')}`}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Chat messages */}
+              <div className="h-96 overflow-y-auto p-4 bg-gray-50">
+                {chatLoading ? (
+                  <div className="flex justify-center items-center h-full">
+                    <div className="animate-pulse text-gray-500">Loading messages...</div>
+                  </div>
+                ) : messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                    <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    <p className="text-center max-w-xs">
+                      No messages yet. Start the conversation by sending a message.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {messages.map((message) => {
+                      const isCurrentUser = message.sender._id === user._id;
+                      const isSystemMessage = message.isSystemMessage;
+                      
+                      return (
+                        <div key={message._id} className={isSystemMessage ? "flex justify-center" : `flex ${isCurrentUser ? "justify-end" : "justify-start"}`}>
+                          {isSystemMessage ? (
+                            <div className="bg-gray-100 text-gray-700 rounded-lg px-4 py-2 text-sm max-w-md text-center">
+                              {message.text}
+                            </div>
+                          ) : (
+                            <div className="max-w-[75%]">
+                              <div className={`flex items-start gap-2 ${isCurrentUser ? "flex-row-reverse" : ""}`}>
+                                <div className={`rounded-full w-8 h-8 flex items-center justify-center text-white text-sm font-bold ${getAvatarColor(message.sender.role)}`}>
+                                  {getInitials(message.sender.name)}
+                                </div>
+                                <div>
+                                  <div className={`rounded-lg px-4 py-2 ${
+                                    isCurrentUser
+                                      ? "bg-blue-600 text-white"
+                                      : "bg-white border border-gray-200 text-gray-800"
+                                  }`}>
+                                    {message.text}
+                                  </div>
+                                  <div className={`text-xs mt-1 text-gray-500 flex items-center ${isCurrentUser ? "justify-end" : "justify-start"}`}>
+                                    <span className="font-medium mr-1">
+                                      {isCurrentUser ? "You" : message.sender.name}
+                                    </span>
+                                    <span className="mx-1">•</span>
+                                    <span>{formatMessageTime(message.timestamp)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    <div ref={messagesEndRef} />
+                  </div>
+                )}
+              </div>
+              
+              {/* Message input */}
+              <div className="border-t border-gray-200 p-4 bg-white">
+                <form onSubmit={sendMessage} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Type your message..."
+                    className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!newMessage.trim()}
+                    className={`p-2 rounded-lg ${
+                      newMessage.trim()
+                        ? "bg-blue-600 text-white hover:bg-blue-700"
+                        : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                    }`}
+                  >
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                  </button>
+                </form>
+                <div className="mt-2 text-xs text-gray-500">
+                  <p>Messages are visible to all project participants: job provider, freelancer, and verifiers.</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

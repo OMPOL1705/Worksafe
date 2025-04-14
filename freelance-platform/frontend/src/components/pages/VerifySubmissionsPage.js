@@ -16,6 +16,12 @@ const VerifySubmissionsPage = () => {
     comments: ''
   });
   const [successMessage, setSuccessMessage] = useState('');
+  const [chatOpen, setChatOpen] = useState(false);
+  const [activeChat, setActiveChat] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [chatLoading, setChatLoading] = useState(true);
+  const [newMessage, setNewMessage] = useState('');
+  const [messagesEndRef, setMessagesEndRef] = useState(null);
   
   // Function to fetch all data
   const fetchData = async () => {
@@ -123,6 +129,12 @@ const VerifySubmissionsPage = () => {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
   
+  // Format chat time in a readable way
+  const formatChatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+  
   // IMPROVED FILTERING: Filter submissions that need verification by this verifier
   const pendingSubmissions = submissions.filter(sub => {
     // Find this verifier's verification entry
@@ -153,6 +165,70 @@ const VerifySubmissionsPage = () => {
     filterStatus === 'pending' ? pendingSubmissions :
     filterStatus === 'verified' ? verifiedSubmissions :
     allAssignedSubmissions;
+  
+  // Function to open the chat modal
+  const openChat = (submissionId) => {
+    setActiveChat(submissionId);
+    setChatOpen(true);
+  };
+  
+  // Function to close the chat modal
+  const closeChat = () => {
+    setChatOpen(false);
+  };
+  
+  // Function to send a message
+  const sendMessage = async (e) => {
+    e.preventDefault();
+    if (!newMessage.trim()) return;
+    
+    try {
+      // Make API call to send a message
+      await axios.post('/api/messages', {
+        submissionId: activeChat,
+        text: newMessage,
+        senderId: user._id,
+        senderName: user.name,
+        senderRole: user.role
+      });
+      
+      // Refetch messages
+      await fetchMessages();
+      
+      // Reset new message
+      setNewMessage('');
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert('Error sending message: ' + error.response?.data?.message || 'Unknown error');
+    }
+  };
+  
+  // Function to fetch messages
+  const fetchMessages = async () => {
+    try {
+      setChatLoading(true);
+      const messagesRes = await axios.get('/api/messages', {
+        params: { submissionId: activeChat }
+      });
+      setMessages(messagesRes.data);
+      setChatLoading(false);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      setChatLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    if (activeChat) {
+      fetchMessages();
+    }
+  }, [activeChat]);
+  
+  useEffect(() => {
+    if (messagesEndRef) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
   
   if (loading) {
     return (
@@ -516,7 +592,7 @@ const VerifySubmissionsPage = () => {
                           >
                             {verifyForm.approved ? (
                               <>
-                                                                <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                                 </svg>
                                 Submit Approval
@@ -538,6 +614,128 @@ const VerifySubmissionsPage = () => {
               </div>
             );
           })}
+        </div>
+      )}
+      
+      {/* Chat Modal */}
+      {chatOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl overflow-hidden w-full max-w-3xl h-[80vh] flex flex-col">
+            {/* Chat Header */}
+            <div className="bg-blue-600 text-white p-4 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-lg">
+                  {jobs.find(j => j._id === submissions.find(s => s._id === activeChat)?.job)?.title || 'Chat'}
+                </h3>
+                <p className="text-sm text-blue-100 mt-0.5">
+                  {submissions.find(s => s._id === activeChat)?.freelancer?.name 
+                    ? `With ${submissions.find(s => s._id === activeChat)?.freelancer?.name}`
+                    : 'Discussion thread'}
+                </p>
+              </div>
+              <button 
+                onClick={closeChat}
+                className="text-white hover:bg-blue-700 rounded-full p-2 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Chat Messages */}
+            <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+              {chatLoading ? (
+                <div className="flex justify-center items-center h-full">
+                  <div className="animate-pulse text-gray-500">Loading messages...</div>
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                  <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  <p className="text-center max-w-xs">
+                    No messages yet. Start the conversation by sending a message.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {messages.map((message) => {
+                    const isCurrentUser = message.sender._id === user._id;
+                    return (
+                      <div key={message.id} className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[75%] ${message.isSystemMessage ? 'w-full text-center' : ''}`}>
+                          {message.isSystemMessage ? (
+                            <div className="bg-gray-100 rounded-lg p-3 text-sm text-gray-700">
+                              {message.text}
+                            </div>
+                          ) : (
+                            <>
+                              <div className={`flex items-start gap-2 ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
+                                <div className={`rounded-full w-8 h-8 flex items-center justify-center text-white text-sm font-bold ${
+                                  message.sender.role === 'freelancer'
+                                    ? 'bg-blue-500'
+                                    : message.sender.role === 'job_provider'
+                                      ? 'bg-purple-500'
+                                      : 'bg-green-500'
+                                }`}>
+                                  {message.sender.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <div className={`rounded-lg px-4 py-2 ${
+                                    isCurrentUser
+                                      ? 'bg-blue-600 text-white'
+                                      : 'bg-white border border-gray-200 text-gray-800'
+                                  }`}>
+                                    {message.text}
+                                  </div>
+                                  <div className={`text-xs mt-1 text-gray-500 ${isCurrentUser ? 'text-right' : 'text-left'}`}>
+                                    <span className="font-medium">
+                                      {isCurrentUser ? 'You' : message.sender.name}
+                                    </span> · {formatChatTime(message.timestamp)}
+                                  </div>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div ref={messagesEndRef} />
+                </div>
+              )}
+            </div>
+            
+            {/* Chat Input */}
+            <div className="border-t border-gray-200 p-4 bg-white">
+              <form onSubmit={sendMessage} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type your message..."
+                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <button
+                  type="submit"
+                  disabled={!newMessage.trim()}
+                  className={`p-2 rounded-lg ${
+                    newMessage.trim()
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                </button>
+              </form>
+              <div className="mt-2 text-xs text-gray-500">
+                <p>Messages are visible to all parties involved in this job: job provider, freelancer, and verifiers.</p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
       
@@ -614,13 +812,13 @@ const VerifySubmissionsPage = () => {
               <svg className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span>Be thorough in your assessment to maintain quality standards.</span>
+              <span>Use the chat feature to communicate directly with both the freelancer and job provider.</span>
             </li>
             <li className="flex items-start">
               <svg className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span>Communicate with the job provider if you have questions about the requirements.</span>
+              <span>Be thorough in your assessment to maintain quality standards.</span>
             </li>
           </ul>
         </div>

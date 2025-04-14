@@ -14,7 +14,6 @@ const JobListPage = () => {
     skills: []
   });
   const [availableSkills, setAvailableSkills] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState('all');
   const [expandedFilterSection, setExpandedFilterSection] = useState(true);
   const [sortBy, setSortBy] = useState('newest');
   
@@ -69,7 +68,6 @@ const JobListPage = () => {
       maxBudget: '',
       skills: []
     });
-    setSelectedCategory('all');
     setSortBy('newest');
   };
   
@@ -100,13 +98,6 @@ const JobListPage = () => {
       }
     }
     
-    // Category filter
-    if (selectedCategory !== 'all') {
-      if (!job.requiredSkills.includes(selectedCategory)) {
-        return false;
-      }
-    }
-    
     return true;
   };
   
@@ -128,16 +119,6 @@ const JobListPage = () => {
     }
     return 0;
   });
-  
-  // Group skills by categories for better organization
-  const skillCategories = [
-    { id: 'all', name: 'All Jobs' },
-    { id: 'web', name: 'Web Development' },
-    { id: 'mobile', name: 'Mobile Development' },
-    { id: 'design', name: 'Design' },
-    { id: 'writing', name: 'Writing' },
-    { id: 'marketing', name: 'Marketing' }
-  ];
   
   // Format date function
   const formatDate = (dateString) => {
@@ -183,35 +164,9 @@ const JobListPage = () => {
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Sidebar with categories and filters */}
+        {/* Sidebar with filters */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sticky top-4">
-            {/* Categories */}
-            <div className="p-4 border-b border-gray-100">
-              <h2 className="text-lg font-semibold mb-4 text-gray-900">Categories</h2>
-              <ul className="space-y-1">
-                {skillCategories.map(category => (
-                  <li key={category.id}>
-                    <button
-                      onClick={() => setSelectedCategory(category.id)}
-                      className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
-                        selectedCategory === category.id
-                          ? 'bg-blue-50 text-blue-700 font-medium'
-                          : 'text-gray-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      {category.name}
-                      {category.id === 'all' && (
-                        <span className="ml-2 px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded-full">
-                          {jobs.length}
-                        </span>
-                      )}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            
             {/* Expanded Filters */}
             {expandedFilterSection && (
               <div className="p-4 bg-white">
@@ -336,7 +291,7 @@ const JobListPage = () => {
                 Showing {filteredJobs.length} {filteredJobs.length === 1 ? 'job' : 'jobs'}
                 {filters.keyword && <span> matching "{filters.keyword}"</span>}
               </div>
-            
+              
           {filteredJobs.length === 0 ? (
                 <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
                   <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
