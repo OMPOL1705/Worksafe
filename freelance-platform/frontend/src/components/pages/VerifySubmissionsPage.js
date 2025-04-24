@@ -25,26 +25,26 @@ const VerifySubmissionsPage = () => {
   
   // Function to fetch all data
   const fetchData = async () => {
-    try {
-      setLoading(true);
-      const jobsRes = await axios.get('/api/jobs/verifier/assigned');
-      setJobs(jobsRes.data);
-      
-      // Fetch submissions for each job
-      const allSubmissions = [];
-      for (const job of jobsRes.data) {
-        const submissionsRes = await axios.get(`/api/submissions/job/${job._id}`);
-        allSubmissions.push(...submissionsRes.data);
+      try {
+        setLoading(true);
+        const jobsRes = await axios.get('/api/jobs/verifier/assigned');
+        setJobs(jobsRes.data);
+        
+        // Fetch submissions for each job
+        const allSubmissions = [];
+        for (const job of jobsRes.data) {
+          const submissionsRes = await axios.get(`/api/submissions/job/${job._id}`);
+          allSubmissions.push(...submissionsRes.data);
+        }
+        
+        setSubmissions(allSubmissions);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching verifier jobs:', error);
+        setLoading(false);
       }
-      
-      setSubmissions(allSubmissions);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching verifier jobs:', error);
-      setLoading(false);
-    }
-  };
-  
+    };
+    
   useEffect(() => {
     fetchData();
   }, []);
@@ -260,7 +260,7 @@ const VerifySubmissionsPage = () => {
       )}
 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
-        <div>
+    <div>
           <h1 className="text-3xl font-bold text-gray-900">Verification Dashboard</h1>
           <p className="mt-1 text-gray-600">Review and verify work submissions from freelancers</p>
         </div>
@@ -352,23 +352,23 @@ const VerifySubmissionsPage = () => {
           )}
         </div>
       ) : (
-        <div className="space-y-6">
+              <div className="space-y-6">
           {displayedSubmissions.map(submission => {
-            // Find the associated job
-            const job = jobs.find(j => j._id === submission.job);
+                  // Find the associated job
+                  const job = jobs.find(j => j._id === submission.job);
             // Find my verification
             const myVerification = submission.verifications.find(v => v.verifier._id === user._id);
             // Current status of this submission for this verifier
             const isPending = myVerification && !myVerification.approved && submission.status !== 'approved';
-            
-            return (
+                  
+                  return (
               <div key={submission._id} className="bg-white rounded-xl shadow-md overflow-hidden">
                 {/* Header */}
                 <div className="bg-blue-50 p-4 border-b border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
+                        <div>
                     <h3 className="font-bold text-lg text-gray-900">
-                      {job?.title || 'Unknown Job'}
-                    </h3>
+                            {job?.title || 'Unknown Job'}
+                          </h3>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1 text-sm text-gray-600">
                       <div className="flex items-center">
                         <svg className="w-4 h-4 text-gray-400 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -383,7 +383,7 @@ const VerifySubmissionsPage = () => {
                         <span>{formatDate(submission.createdAt)}</span>
                       </div>
                     </div>
-                  </div>
+                        </div>
                   
                   <div className="flex items-center gap-3">
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
@@ -400,19 +400,19 @@ const VerifySubmissionsPage = () => {
                           : 'Inactive'}
                     </span>
                     
-                    <Link 
-                      to={`/jobs/${submission.job}`}
+                        <Link 
+                          to={`/jobs/${submission.job}`}
                       className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center"
-                    >
+                        >
                       <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                       </svg>
-                      View Job
-                    </Link>
+                          View Job
+                        </Link>
                   </div>
-                </div>
-                
+                      </div>
+                      
                 <div className="p-6">
                   {/* Submission Content */}
                   <div className="mb-6">
@@ -425,7 +425,7 @@ const VerifySubmissionsPage = () => {
                     <div className="bg-gray-50 p-4 rounded-lg border border-gray-100 whitespace-pre-line text-gray-700">
                       {submission.text || 'No details provided.'}
                     </div>
-                  </div>
+                      </div>
                   
                   {/* Images */}
                   {submission.images && submission.images.length > 0 && (
@@ -438,22 +438,22 @@ const VerifySubmissionsPage = () => {
                       </h4>
                       
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                        {submission.images.map((imageId, index) => {
-                          // Try to get image from localStorage
-                          const imageData = getImageFromStorage(imageId, submission.job);
-                          
-                          if (imageData && imageData.dataUrl) {
-                            // If we have the image data, show the actual image
-                            return (
+                            {submission.images.map((imageId, index) => {
+                              // Try to get image from localStorage
+                              const imageData = getImageFromStorage(imageId, submission.job);
+                              
+                              if (imageData && imageData.dataUrl) {
+                                // If we have the image data, show the actual image
+                                return (
                               <div 
                                 key={index} 
                                 className="relative group cursor-pointer rounded-lg overflow-hidden shadow-sm border border-gray-200 bg-white transition-all hover:shadow-md"
                                 onClick={() => openImageViewer(imageData.dataUrl)}
                               >
                                 <div className="aspect-square relative">
-                                  <img 
-                                    src={imageData.dataUrl} 
-                                    alt={`Image ${index + 1}`}
+                                    <img 
+                                      src={imageData.dataUrl} 
+                                      alt={`Image ${index + 1}`}
                                     className="h-full w-full object-cover"
                                   />
                                   <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -465,24 +465,24 @@ const VerifySubmissionsPage = () => {
                                 <div className="p-2 text-xs text-gray-500 truncate">
                                   Image {index + 1}
                                 </div>
-                              </div>
-                            );
-                          } else {
-                            // Otherwise show a placeholder
-                            return (
+                                  </div>
+                                );
+                              } else {
+                                // Otherwise show a placeholder
+                                return (
                               <div key={index} className="border border-gray-200 rounded-lg p-3 bg-gray-50 flex flex-col items-center justify-center aspect-square">
                                 <svg className="w-10 h-10 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                </svg>
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
                                 <span className="text-xs text-center text-gray-500 max-w-full truncate px-2">
-                                  {typeof imageId === 'string' 
-                                    ? imageId.split('-').pop() 
-                                    : `Image ${index + 1}`}
-                                </span>
-                              </div>
-                            );
-                          }
-                        })}
+                                      {typeof imageId === 'string' 
+                                        ? imageId.split('-').pop() 
+                                        : `Image ${index + 1}`}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                            })}
                       </div>
                     </div>
                   )}
@@ -503,7 +503,7 @@ const VerifySubmissionsPage = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                           </svg>
                           Approved on {formatDate(myVerification.updatedAt || submission.updatedAt)}
-                        </div>
+                            </div>
                         
                         {myVerification.comments ? (
                           <div className="text-gray-700">
@@ -513,9 +513,9 @@ const VerifySubmissionsPage = () => {
                         ) : (
                           <p className="text-gray-600 italic">No comments provided.</p>
                         )}
-                      </div>
-                    </div>
-                  )}
+                          </div>
+                        </div>
+                      )}
                   
                   {/* Verification Form */}
                   {isPending && (
@@ -586,8 +586,8 @@ const VerifySubmissionsPage = () => {
                         </div>
                         
                         <div className="flex justify-end">
-                          <button
-                            type="submit"
+                        <button
+                          type="submit"
                             className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                           >
                             {verifyForm.approved ? (
@@ -605,15 +605,15 @@ const VerifySubmissionsPage = () => {
                                 Submit Feedback
                               </>
                             )}
-                          </button>
+                        </button>
                         </div>
                       </form>
                     </div>
                   )}
                 </div>
-              </div>
-            );
-          })}
+                    </div>
+                  );
+                })}
         </div>
       )}
       
@@ -659,10 +659,10 @@ const VerifySubmissionsPage = () => {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-4">
+              <div className="space-y-4">
                   {messages.map((message) => {
                     const isCurrentUser = message.sender._id === user._id;
-                    return (
+                  return (
                       <div key={message.id} className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[75%] ${message.isSystemMessage ? 'w-full text-center' : ''}`}>
                           {message.isSystemMessage ? (
@@ -681,7 +681,7 @@ const VerifySubmissionsPage = () => {
                                 }`}>
                                   {message.sender.name.charAt(0).toUpperCase()}
                                 </div>
-                                <div>
+                        <div>
                                   <div className={`rounded-lg px-4 py-2 ${
                                     isCurrentUser
                                       ? 'bg-blue-600 text-white'
@@ -705,8 +705,8 @@ const VerifySubmissionsPage = () => {
                   <div ref={messagesEndRef} />
                 </div>
               )}
-            </div>
-            
+                      </div>
+                      
             {/* Chat Input */}
             <div className="border-t border-gray-200 p-4 bg-white">
               <form onSubmit={sendMessage} className="flex items-center gap-2">

@@ -31,9 +31,31 @@ const JobSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  verifierFees: [{
+    verifier: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    fee: Number,
+    paid: {
+      type: Boolean,
+      default: false
+    }
+  }],
+  totalVerifierFees: {
+    type: Number,
+    default: 0
+  },
+  deadline: {
+    type: Date
+  },
+  refundProcessed: {
+    type: Boolean,
+    default: false
+  },
   status: {
     type: String,
-    enum: ['open', 'assigned', 'in_progress', 'completed'],
+    enum: ['open', 'assigned', 'in_progress', 'completed', 'expired'],
     default: 'open'
   },
   applicants: [{
@@ -44,6 +66,14 @@ const JobSchema = new mongoose.Schema({
     price: Number,
     proposal: String
   }],
+  paymentDetails: {
+    amountDeducted: {
+      type: Number,
+      default: 0
+    },
+    deductedAt: Date,
+    refundedAt: Date
+  },
   createdAt: {
     type: Date,
     default: Date.now

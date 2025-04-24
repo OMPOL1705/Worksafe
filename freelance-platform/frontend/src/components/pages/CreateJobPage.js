@@ -29,9 +29,16 @@ const CreateJobPage = () => {
   const onSubmit = async e => {
     e.preventDefault();
     
-    // Simple validation
-    if (!title || !description || !budget) {
-      setError('Please fill in all required fields');
+    if (!title || !description || !budget || requiredSkills.length === 0 || !deadline) {
+      setError('Please fill in all fields and add at least one required skill');
+      return;
+    }
+    
+    // Validate that deadline is in the future
+    const deadlineDate = new Date(deadline);
+    const now = new Date();
+    if (deadlineDate <= now) {
+      setError('Deadline must be in the future');
       return;
     }
     
@@ -90,7 +97,7 @@ const CreateJobPage = () => {
             <svg className="h-5 w-5 mr-2 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
-            {error}
+          {error}
           </div>
         </div>
       )}
@@ -118,19 +125,19 @@ const CreateJobPage = () => {
               <div>
                 <label className="block text-gray-700 text-sm font-medium mb-2" htmlFor="title">
                   Job Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="title"
-                  name="title"
-                  value={title}
-                  onChange={onChange}
+          </label>
+          <input
+            type="text"
+            id="title"
+            name="title"
+            value={title}
+            onChange={onChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  required
-                  placeholder="e.g. Website Development, Logo Design, etc."
-                />
-              </div>
-              
+            required
+            placeholder="e.g. Website Development, Logo Design, etc."
+          />
+        </div>
+        
               <div>
                 <label className="block text-gray-700 text-sm font-medium mb-2" htmlFor="category">
                   Category <span className="text-red-500">*</span>
@@ -154,82 +161,84 @@ const CreateJobPage = () => {
             <div className="mb-6">
               <label className="block text-gray-700 text-sm font-medium mb-2" htmlFor="description">
                 Job Description <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                value={description}
-                onChange={onChange}
+          </label>
+          <textarea
+            id="description"
+            name="description"
+            value={description}
+            onChange={onChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                rows="6"
-                required
-                placeholder="Provide detailed information about the job, requirements, timeline, etc."
-              ></textarea>
+            rows="6"
+            required
+            placeholder="Provide detailed information about the job, requirements, timeline, etc."
+          ></textarea>
               <p className="mt-1 text-xs text-gray-500">Detailed descriptions tend to get better proposals</p>
-            </div>
-            
+        </div>
+        
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
                 <label className="block text-gray-700 text-sm font-medium mb-2" htmlFor="budget">
                   Budget ($) <span className="text-red-500">*</span>
-                </label>
+          </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <span className="text-gray-500">$</span>
                   </div>
-                  <input
-                    type="number"
-                    id="budget"
-                    name="budget"
-                    value={budget}
-                    onChange={onChange}
+          <input
+            type="number"
+            id="budget"
+            name="budget"
+            value={budget}
+            onChange={onChange}
                     className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    required
-                    min="1"
-                    placeholder="Enter your budget"
-                  />
+            required
+            min="1"
+            placeholder="Enter your budget"
+          />
                 </div>
-              </div>
-              
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-2" htmlFor="deadline">
-                  Deadline (Optional)
+        </div>
+        
+        <div className="mb-4">
+                <label htmlFor="deadline" className="block text-sm font-medium text-gray-700 mb-1">
+                  Deadline
                 </label>
                 <input
-                  type="date"
+                  type="datetime-local"
                   id="deadline"
-                  name="deadline"
+                  className="focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
                   value={deadline}
-                  onChange={onChange}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                  required
                 />
+                <p className="mt-1 text-sm text-gray-500">
+                  Specify when the job must be completed. The freelancer must complete the job before this deadline.
+                </p>
               </div>
             </div>
             
             <div className="mb-8">
               <label className="block text-gray-700 text-sm font-medium mb-2" htmlFor="requiredSkills">
-                Required Skills (comma separated)
-              </label>
-              <input
-                type="text"
-                id="requiredSkills"
-                name="requiredSkills"
-                value={requiredSkills}
-                onChange={onChange}
+            Required Skills (comma separated)
+          </label>
+          <input
+            type="text"
+            id="requiredSkills"
+            name="requiredSkills"
+            value={requiredSkills}
+            onChange={onChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder="e.g. React, Node.js, UI/UX Design, etc."
-              />
+            placeholder="e.g. React, Node.js, UI/UX Design, etc."
+          />
               <p className="mt-1 text-xs text-gray-500">Adding relevant skills helps attract the right freelancers</p>
-            </div>
-            
+        </div>
+        
             <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={() => navigate(-1)}
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
                 className="bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all"
-              >
-                Cancel
+          >
+            Cancel
               </button>
               
               <div className="flex items-center">
@@ -240,10 +249,10 @@ const CreateJobPage = () => {
                   disabled={!title || !description}
                 >
                   Preview
-                </button>
-                
-                <button
-                  type="submit"
+          </button>
+          
+          <button
+            type="submit"
                   className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center transition-all"
                   disabled={loading}
                 >
@@ -310,11 +319,11 @@ const CreateJobPage = () => {
                 type="button"
                 onClick={onSubmit}
                 className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
-                disabled={loading}
-              >
-                {loading ? 'Posting...' : 'Post Job'}
-              </button>
-            </div>
+            disabled={loading}
+          >
+            {loading ? 'Posting...' : 'Post Job'}
+          </button>
+        </div>
           </div>
         )}
       </div>

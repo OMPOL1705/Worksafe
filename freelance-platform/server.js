@@ -9,6 +9,8 @@ const submissionRoutes = require('./routes/submissionRoutes');
 const verificationRoutes = require('./routes/verificationRoutes');
 // Add this with your other route imports
 const jobChat = require('./routes/jobChat');
+// Import our job deadline checker
+const { scheduleJobChecker } = require('./cron/jobDeadlineChecker');
 
 
 
@@ -23,7 +25,11 @@ app.use(express.json());
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB Connected'))
+  .then(() => {
+    console.log('MongoDB Connected');
+    // Schedule the job deadline checker
+    scheduleJobChecker();
+  })
   .catch(err => console.log('MongoDB Connection Error: ', err));
 
 // Routes

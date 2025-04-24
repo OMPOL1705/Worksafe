@@ -7,14 +7,24 @@ const { protect, authorize } = require('../middleware/auth');
 // Create a job
 router.post('/', protect, authorize('job_provider'), async (req, res) => {
   try {
-    const { title, description, budget, requiredSkills } = req.body;
+    const { title, description, budget, requiredSkills, deadline } = req.body;
+    
+    // Validate deadline is in the future
+    if (deadline) {
+      const deadlineDate = new Date(deadline);
+      const now = new Date();
+      if (deadlineDate <= now) {
+        return res.status(400).json({ message: 'Deadline must be in the future' });
+      }
+    }
     
     const job = await Job.create({
       title,
       description,
       budget,
       requiredSkills,
-      jobProvider: req.user.id
+      jobProvider: req.user.id,
+      deadline: deadline ? new Date(deadline) : null
     });
     
     res.status(201).json(job);
@@ -178,26 +188,66 @@ router.put('/:id/select-freelancer', protect, authorize('job_provider'), async (
       return res.status(400).json({ message: 'This freelancer has not applied for the job' });
     }
     
+    // Check if verifiers are provided
+    if (!verifierIds || verifierIds.length === 0) {
+      return res.status(400).json({ message: 'At least one verifier is required' });
+    }
+
+    // Calculate verifier fees (10% of job amount per verifier)
+    const verifierFeePercentage = 0.10;
+    const verifierFeeTotal = application.price * verifierFeePercentage * verifierIds.length;
+    
+    // Calculate total amount to deduct (job price + verifier fees)
+    const totalDeduction = application.price + verifierFeeTotal;
+    
     // Check if job provider has enough balance
     const jobProvider = await User.findById(req.user.id);
-    if (jobProvider.balance < application.price) {
-      return res.status(400).json({ message: 'Insufficient balance' });
+    if (jobProvider.balance < totalDeduction) {
+      return res.status(400).json({ 
+        message: `Insufficient balance. You need ${totalDeduction} to cover the job cost and verifier fees.` 
+      });
     }
     
-    // Deduct amount from job provider
-    jobProvider.balance -= application.price;
+    // Deduct total amount from job provider
+    jobProvider.balance -= totalDeduction;
     await jobProvider.save();
+    
+    // Store verifier fee information in the job document
+    job.verifierFees = verifierIds.map(verifierId => ({
+      verifier: verifierId,
+      fee: application.price * verifierFeePercentage,
+      paid: false
+    }));
     
     // Update job
     job.selectedFreelancer = freelancerId;
     job.verifiers = verifierIds;
     job.status = 'assigned';
+    job.totalVerifierFees = verifierFeeTotal;
+    
+    // Record payment details
+    job.paymentDetails = {
+      amountDeducted: totalDeduction,
+      deductedAt: Date.now()
+    };
     
     await job.save();
     
     res.json(job);
   } catch (error) {
     console.error(error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Check for expired jobs (admin only)
+router.post('/check-expired', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { checkExpiredJobs } = require('../cron/jobDeadlineChecker');
+    await checkExpiredJobs();
+    res.json({ message: 'Expired jobs checked successfully' });
+  } catch (error) {
+    console.error('Error checking expired jobs:', error);
     res.status(500).json({ message: 'Server Error' });
   }
 });

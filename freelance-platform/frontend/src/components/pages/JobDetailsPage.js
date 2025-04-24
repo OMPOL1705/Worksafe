@@ -35,6 +35,10 @@ const JobDetailsPage = () => {
   const [newMessage, setNewMessage] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const [showVerifierSelector, setShowVerifierSelector] = useState(false);
+  const [availableVerifiers, setAvailableVerifiers] = useState([]);
+  const [selectedApplicantPrice, setSelectedApplicantPrice] = useState(0);
+  const [submitLoading, setSubmitLoading] = useState(false);
   
   // Set up axios with auth headers
   useEffect(() => {
@@ -602,6 +606,14 @@ const JobDetailsPage = () => {
     if (job.verifiers.some(v => v._id === user._id)) return true;
     
     return false;
+  };
+  
+  const handleVerifierCheckboxChange = (verifierId) => {
+    if (selectedVerifiers.includes(verifierId)) {
+      setSelectedVerifiers(selectedVerifiers.filter(id => id !== verifierId));
+    } else {
+      setSelectedVerifiers([...selectedVerifiers, verifierId]);
+    }
   };
   
   if (loading) {
@@ -1707,6 +1719,77 @@ const JobDetailsPage = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+      
+      {/* Update the verifier selection modal to show fee information */}
+      {showVerifierSelector && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Select Verifiers</h2>
+            
+            {verifiersLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+              </div>
+            ) : availableVerifiers.length === 0 ? (
+              <p className="text-gray-500 mb-4">No verifiers available. Please add verifiers to your system.</p>
+            ) : (
+              <>
+                <p className="text-gray-500 mb-2">
+                  Select one or more verifiers who will approve the work before payment is released.
+                </p>
+                <p className="text-yellow-600 mb-4">
+                  Note: Each verifier will receive 10% of the job price (${(selectedApplicantPrice * 0.1).toFixed(2)}).
+                  This fee will be deducted from your balance when selecting the freelancer.
+                </p>
+                
+                <div className="space-y-3 max-h-60 overflow-y-auto mb-4">
+                  {availableVerifiers.map((verifier) => (
+                    <div key={verifier._id} className="flex items-start">
+                      <input
+                        type="checkbox"
+                        id={`verifier-${verifier._id}`}
+                        value={verifier._id}
+                        checked={selectedVerifiers.includes(verifier._id)}
+                        onChange={() => handleVerifierCheckboxChange(verifier._id)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-1"
+                      />
+                      <label htmlFor={`verifier-${verifier._id}`} className="ml-3 block">
+                        <span className="text-sm font-medium text-gray-900">{verifier.name}</span>
+                        <p className="text-xs text-gray-500">{verifier.email}</p>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+                
+                {selectedVerifiers.length > 0 && (
+                  <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-blue-700">
+                      Total verifier fees: ${(selectedApplicantPrice * 0.1 * selectedVerifiers.length).toFixed(2)} 
+                      ({selectedVerifiers.length} verifier{selectedVerifiers.length > 1 ? 's' : ''})
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+            
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => setShowVerifierSelector(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSelectFreelancer}
+                disabled={selectedVerifiers.length === 0 || submitLoading}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitLoading ? 'Processing...' : 'Confirm Selection'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -149,8 +149,29 @@ router.put('/:id/verify', protect, authorize('verifier'), async (req, res) => {
       );
       
       if (application) {
+        // Add payment to freelancer
         freelancer.balance += application.price;
         await freelancer.save();
+        
+        // Distribute fees to all verifiers
+        if (job.verifierFees && job.verifierFees.length > 0) {
+          for (const feeInfo of job.verifierFees) {
+            if (!feeInfo.paid) {
+              const verifier = await User.findById(feeInfo.verifier);
+              if (verifier) {
+                // Add fee to verifier's balance
+                verifier.balance += feeInfo.fee;
+                await verifier.save();
+                
+                // Mark fee as paid
+                feeInfo.paid = true;
+              }
+            }
+          }
+          
+          // Save the updated job with paid verifier fees
+          job.markModified('verifierFees');
+        }
       }
       
       await job.save();
